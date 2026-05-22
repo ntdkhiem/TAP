@@ -212,15 +212,10 @@ export default function StudentPortal() {
               {currentQ.options?.map((option, idx) => (
                 <button 
                   key={idx}
-                  className="option-card group"
+                  className="option-card"
                   onClick={() => handleAnswer(idx)}
                 >
-                  <div className="w-10 h-10 rounded-full border-2 border-indigo-500/30 flex items-center justify-center mr-6 group-hover:border-indigo-400 group-hover:bg-indigo-500/20 transition-colors text-sm font-bold text-indigo-300">
-                    {String.fromCharCode(65 + idx)}
-                  </div>
-                  <div className="flex-1">
-                    <MathText text={option} />
-                  </div>
+                  <div className="flex-1 text-lg"><MathText text={option} /></div>
                 </button>
               ))}
             </div>

@@ -64,21 +64,21 @@ export default function TutorPortal() {
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {setupQuestions.map((q, idx) => (
-                <div key={q.id} className="p-6 border border-white/10 rounded-2xl bg-slate-900/40 shadow-inner">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold">
+                <div key={q.id} className="question-preview-panel">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-8 h-8 rounded-full question-number-badge flex items-center justify-center font-bold shrink-0">
                       {idx + 1}
                     </div>
                     <span className="font-semibold text-slate-300 uppercase tracking-widest text-sm">Question</span>
                   </div>
-                  <div className="text-lg mb-6"><MathText text={q.text} /></div>
-                  <div className="flex flex-col gap-3">
+                  <div className="text-xl mb-6"><MathText text={q.text} /></div>
+                  <div className="flex flex-col gap-4">
                     {q.options?.map((option, oIdx) => (
-                      <div key={oIdx} className={`p-3 rounded-xl border flex items-center ${q.correctOption === oIdx ? 'border-emerald-500/50 bg-emerald-500/10' : 'border-white/5 bg-white/5'}`}>
-                        <div className="flex-1"><MathText text={option} /></div>
+                      <div key={oIdx} className={`preview-option-card flex items-center ${q.correctOption === oIdx ? 'correct' : ''}`}>
+                        <div className="flex-1 text-lg"><MathText text={option} /></div>
                         {q.correctOption === oIdx && (
-                          <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                          <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0" style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#34d399' }}>
+                            <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                           </div>
                         )}
                       </div>
