@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useSessionState, Question } from '@/utils/stateSync';
 import { MathText } from '@/components/MathText';
 
@@ -23,7 +23,31 @@ const MOCK_QUESTIONS: Question[] = [
 
 export default function TutorPortal() {
   const { session, updateSession } = useSessionState();
-  const [setupQuestions] = useState<Question[]>(MOCK_QUESTIONS);
+  const [setupQuestions, setSetupQuestions] = useState<Question[]>(MOCK_QUESTIONS);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const json = JSON.parse(event.target?.result as string);
+        if (Array.isArray(json) && json.length > 0 && json[0].id && json[0].text) {
+          setSetupQuestions(json);
+        } else {
+          alert("Invalid JSON format. Please upload a valid questions file.");
+        }
+      } catch (err) {
+        alert("Failed to parse JSON file.");
+      }
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    };
+    reader.readAsText(file);
+  };
 
   const generateClassCode = () => {
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -88,8 +112,18 @@ export default function TutorPortal() {
               ))}
             </div>
 
-            <div className="mt-12 text-center border-t border-white/10 pt-8">
-              <button className="btn btn-primary text-xl px-12 py-5" onClick={generateClassCode}>
+            <div className="mt-12 flex flex-wrap justify-center gap-6 border-t border-white/10 pt-8">
+              <input 
+                type="file" 
+                accept=".json" 
+                ref={fileInputRef} 
+                style={{ display: 'none' }} 
+                onChange={handleFileUpload} 
+              />
+              <button className="btn btn-outline text-lg lg:text-xl px-8 lg:px-12 py-4 lg:py-5" onClick={() => fileInputRef.current?.click()}>
+                Upload Custom JSON
+              </button>
+              <button className="btn btn-primary text-lg lg:text-xl px-8 lg:px-12 py-4 lg:py-5" onClick={generateClassCode}>
                 Generate Class Code
               </button>
             </div>

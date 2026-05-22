@@ -6,6 +6,7 @@ import { useEffect, useState, useCallback } from 'react';
 export interface Question {
   id: string;
   text: string;
+  imageUrl?: string;
   options?: string[]; // For multiple choice
   correctOption?: number; // Index
 }
