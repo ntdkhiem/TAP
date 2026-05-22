@@ -109,8 +109,16 @@ export function useSessionState(classCodeToWatch?: string | null) {
         questions: parsedQuestions,
         students: parsedStudents
       });
-    } catch (e) {
+    } catch (e: unknown) {
       console.error('Error loading session:', e);
+      // If session not found (0 rows), clear local storage so we don't infinitely retry an invalid code
+      if (e && typeof e === 'object' && 'code' in e && e.code === 'PGRST116') {
+        localStorage.removeItem('tap-session');
+        setSession(INITIAL_STATE);
+        setLoading(false);
+        return;
+      }
+      
       // Fallback for when Supabase is not connected yet (Local mock mode)
       const stored = localStorage.getItem('tap-session');
       if (stored) {

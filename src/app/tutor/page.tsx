@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useSessionState, Question } from '@/utils/stateSync';
 import { MathText } from '@/components/MathText';
+import { createSessionRecord, startSessionRecord } from '@/utils/supabaseActions';
 
 const MOCK_QUESTIONS: Question[] = [
   {
@@ -20,25 +21,34 @@ const MOCK_QUESTIONS: Question[] = [
 ];
 
 export default function TutorPortal() {
-  const { session, updateSession } = useSessionState();
+  const [activeCode, setActiveCode] = useState<string | null>(null);
+  const { session, updateSession } = useSessionState(activeCode);
   const [setupQuestions] = useState<Question[]>(MOCK_QUESTIONS);
 
-  const generateClassCode = () => {
+  const generateClassCode = async () => {
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-    updateSession({
-      ...session,
-      classCode: code,
-      questions: setupQuestions,
-      status: 'waiting',
-      students: []
-    });
+    
+    // Save to Supabase
+    await createSessionRecord(code, setupQuestions);
+
+    // Tell useSessionState to watch this new code
+    setActiveCode(code);
+    localStorage.setItem('tap-session', JSON.stringify({ classCode: code }));
   };
 
-  const startTest = () => {
-    updateSession({ ...session, status: 'started' });
+  const startTest = async () => {
+    if (session.id) {
+      await startSessionRecord(session.id);
+      // Fallback update for instant UI feedback
+      updateSession({ ...session, status: 'started' });
+    } else {
+      console.error("No session.id found, cannot start test");
+    }
   };
 
   const resetSession = () => {
+    setActiveCode(null);
+    localStorage.removeItem('tap-session');
     updateSession({
       classCode: null,
       status: 'waiting',

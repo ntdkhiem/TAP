@@ -3,18 +3,22 @@
 import React, { useState, useEffect } from 'react';
 import { useSessionState, StudentInfo } from '@/utils/stateSync';
 import { MathText } from '@/components/MathText';
+import { joinSessionRecord, submitAnswerRecord, syncTimerRecord, markStrugglingRecord } from '@/utils/supabaseActions';
+import { supabase } from '@/utils/supabaseClient';
 
 export default function StudentPortal() {
-  const { session, updateSession } = useSessionState();
+  const [activeCode, setActiveCode] = useState<string | null>(null);
+  const { session, updateSession } = useSessionState(activeCode);
   const [joinCode, setJoinCode] = useState('');
   const [studentName, setStudentName] = useState('');
   const [myId, setMyId] = useState<string | null>(null);
   
   // Timer for tracking time spent on current question
   useEffect(() => {
-    if (session.status !== 'started' || !myId) return;
+    if (session.status !== 'started' || !myId || !session.id) return;
 
-    const interval = setInterval(() => {
+    const interval = setInterval(async () => {
+      // Local UI update
       updateSession(prev => {
         const studentIndex = prev.students.findIndex(s => s.id === myId);
         if (studentIndex === -1) return prev;
@@ -24,7 +28,6 @@ export default function StudentPortal() {
         
         student.timeSpentSeconds += 1;
         
-        // Simple mock logic for "struggling"
         if (student.timeSpentSeconds > 30 || student.incorrectAttempts >= 2) {
           student.isStruggling = true;
         }
@@ -32,25 +35,48 @@ export default function StudentPortal() {
         students[studentIndex] = student;
         return { ...prev, students };
       });
+
+      // Sync to Supabase every 5 seconds to avoid hammering the DB
+      const me = session.students.find(s => s.id === myId);
+      if (me) {
+        if (me.timeSpentSeconds % 5 === 0) {
+           const currentQ = session.questions[me.currentQuestionIndex];
+           if (currentQ) {
+             await syncTimerRecord(myId, currentQ.id, me.timeSpentSeconds, me.incorrectAttempts);
+           }
+        }
+        if (me.timeSpentSeconds === 31) {
+           await markStrugglingRecord(myId);
+        }
+      }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [session.status, myId, updateSession]);
+  }, [session.status, myId, session.id, session.students, session.questions, updateSession]);
 
-  const handleJoin = (e: React.FormEvent) => {
+  const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!joinCode || !studentName) return;
     
-    if (session.classCode !== joinCode) {
+    // Fetch session directly from Supabase
+    const { data: sessionData, error } = await supabase.from('sessions').select('*').eq('class_code', joinCode).single();
+    
+    if (error || !sessionData) {
       alert("Invalid Class Code. Please wait for the tutor to generate one.");
       return;
     }
 
-    const newId = Math.random().toString(36).substring(2, 9);
-    setMyId(newId);
+    // Save to Supabase
+    const supabaseStudentId = await joinSessionRecord(sessionData.id, studentName);
+    const finalId = supabaseStudentId || Math.random().toString(36).substring(2, 9);
+    setMyId(finalId);
+    setActiveCode(joinCode);
+    
+    // Save to local storage for page reloads
+    localStorage.setItem('tap-session', JSON.stringify({ classCode: joinCode }));
 
     const newStudent: StudentInfo = {
-      id: newId,
+      id: finalId,
       name: studentName,
       currentQuestionIndex: 0,
       timeSpentSeconds: 0,
@@ -66,29 +92,35 @@ export default function StudentPortal() {
     }));
   };
 
-  const handleAnswer = (optionIndex: number) => {
+  const handleAnswer = async (optionIndex: number) => {
     if (!myId) return;
 
-    updateSession(prev => {
-      const studentIndex = prev.students.findIndex(s => s.id === myId);
-      if (studentIndex === -1) return prev;
-      
-      const student = { ...prev.students[studentIndex] };
-      const currentQ = prev.questions[student.currentQuestionIndex];
-      
-      if (currentQ.correctOption === optionIndex) {
-        // Correct!
-        student.score += 1;
-        student.currentQuestionIndex += 1;
-        student.timeSpentSeconds = 0;
-        student.incorrectAttempts = 0;
-        student.isStruggling = false;
-      } else {
-        // Incorrect
-        student.incorrectAttempts += 1;
-        if (student.incorrectAttempts >= 2) student.isStruggling = true;
-      }
+    const studentIndex = session.students.findIndex(s => s.id === myId);
+    if (studentIndex === -1) return;
+    
+    const student = { ...session.students[studentIndex] };
+    const currentQ = session.questions[student.currentQuestionIndex];
+    let isCorrect = false;
 
+    if (currentQ.correctOption === optionIndex) {
+      isCorrect = true;
+      student.score += 1;
+      student.currentQuestionIndex += 1;
+      student.timeSpentSeconds = 0;
+      student.incorrectAttempts = 0;
+      student.isStruggling = false;
+    } else {
+      student.incorrectAttempts += 1;
+      if (student.incorrectAttempts >= 2) {
+        student.isStruggling = true;
+        await markStrugglingRecord(myId);
+      }
+    }
+
+    // Sync to Supabase
+    await submitAnswerRecord(myId, currentQ.id, isCorrect, student.score, student.currentQuestionIndex);
+    
+    updateSession(prev => {
       const students = [...prev.students];
       students[studentIndex] = student;
       return { ...prev, students };
