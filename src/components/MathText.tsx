@@ -8,7 +8,7 @@ interface MathTextProps {
 }
 
 export function MathText({ text }: MathTextProps) {
-  const parts = text.split(/(\$\$[\s\S]*?\$\$)/g);
+  const parts = text.split(/(\$\$[\s\S]*?\$\$|\$[\s\S]*?\$)/g);
 
   return (
     <span>
@@ -19,6 +19,22 @@ export function MathText({ text }: MathTextProps) {
             const html = katex.renderToString(math, {
               throwOnError: false,
               displayMode: true,
+            });
+            return (
+              <span 
+                key={index} 
+                dangerouslySetInnerHTML={{ __html: html }} 
+              />
+            );
+          } catch {
+            return <span key={index} className="text-red-500">{part}</span>;
+          }
+        } else if (part.startsWith('$') && part.endsWith('$')) {
+          const math = part.slice(1, -1);
+          try {
+            const html = katex.renderToString(math, {
+              throwOnError: false,
+              displayMode: false,
             });
             return (
               <span 

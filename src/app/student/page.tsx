@@ -179,14 +179,14 @@ export default function StudentPortal() {
             <MathText text={currentQ.text} />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex flex-col gap-4">
             {currentQ.options?.map((option, idx) => (
               <button 
                 key={idx}
                 className="btn btn-outline p-4 justify-start text-left h-auto hover:bg-white/10"
                 onClick={() => handleAnswer(idx)}
               >
-                <MathText text={`$${option}$`} />
+                <MathText text={option} />
               </button>
             ))}
           </div>

@@ -8,13 +8,13 @@ const MOCK_QUESTIONS: Question[] = [
   {
     id: '1',
     text: 'Evaluate the integral: $$\\int x^2 dx$$',
-    options: ['x^3/3 + C', '2x + C', 'x^2/2 + C', 'x^3 + C'],
+    options: ['$x^3/3 + C$', '$2x + C$', '$x^2/2 + C$', '$x^3 + C$'],
     correctOption: 0
   },
   {
     id: '2',
     text: 'What is the limit as x approaches 0 of $$\\frac{\\sin(x)}{x}$$?',
-    options: ['0', '1', 'infinity', 'undefined'],
+    options: ['$0$', '$1$', '$\\infty$', 'undefined'],
     correctOption: 1
   }
 ];
@@ -60,8 +60,13 @@ export default function TutorPortal() {
               <div key={q.id} className="p-4 border border-white/10 rounded-lg bg-white/5">
                 <div className="font-semibold mb-2">Question {idx + 1}</div>
                 <MathText text={q.text} />
-                <div className="mt-2 text-sm text-gray-400">
-                  Options: {q.options?.join(', ')} | Correct: {q.options?.[q.correctOption ?? 0]}
+                <div className="mt-4 flex flex-col gap-2">
+                  {q.options?.map((option, oIdx) => (
+                    <div key={oIdx} className={`p-2 rounded border flex items-center ${q.correctOption === oIdx ? 'border-emerald-500/50 bg-emerald-500/10' : 'border-white/10 bg-white/5'}`}>
+                      <MathText text={option} />
+                      {q.correctOption === oIdx && <span className="ml-auto text-xs text-emerald-400 uppercase font-bold tracking-wider">Correct</span>}
+                    </div>
+                  ))}
                 </div>
               </div>
             ))}
