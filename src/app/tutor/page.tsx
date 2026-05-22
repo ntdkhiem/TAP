@@ -25,6 +25,7 @@ export default function TutorPortal() {
   const { session, updateSession } = useSessionState();
   const [setupQuestions, setSetupQuestions] = useState<Question[]>(MOCK_QUESTIONS);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const nextTestFileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -44,6 +45,44 @@ export default function TutorPortal() {
       }
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleNextTestUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const json = JSON.parse(event.target?.result as string);
+        if (Array.isArray(json) && json.length > 0 && json[0].id && json[0].text) {
+          const resetStudents = session.students.map(s => ({
+            ...s,
+            currentQuestionIndex: 0,
+            score: 0,
+            timeSpentSeconds: 0,
+            incorrectAttempts: 0,
+            totalIncorrectAttempts: 0,
+            isStruggling: false
+          }));
+
+          updateSession({
+            ...session,
+            questions: json,
+            students: resetStudents,
+            status: 'started'
+          });
+        } else {
+          alert("Invalid JSON format. Please upload a valid questions file.");
+        }
+      } catch (err) {
+        alert("Failed to parse JSON file.");
+      }
+      if (nextTestFileInputRef.current) {
+        nextTestFileInputRef.current.value = '';
       }
     };
     reader.readAsText(file);
@@ -188,7 +227,70 @@ export default function TutorPortal() {
     );
   }
 
-  // Phase 3: Live Dashboard
+  // Phase 3: Live Dashboard or Session Complete
+  const isTestFinished = session.students.length > 0 && session.students.every(s => s.currentQuestionIndex >= session.questions.length);
+
+  if (isTestFinished) {
+    return (
+      <>
+        <div className="mesh-bg"></div>
+        <div className="flex flex-col items-center p-8 min-h-screen relative z-10">
+          <div className="glass-panel w-full max-w-4xl animate-fade-in-up">
+            <div className="flex flex-col items-center text-center mb-12">
+              <div className="w-20 h-20 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-6">
+                <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+              </div>
+              <h2 className="text-4xl font-bold tracking-tight mb-2">Session Complete</h2>
+              <p className="text-xl text-slate-400">All students have finished the test.</p>
+            </div>
+
+            <div className="mb-12">
+              <h3 className="text-2xl mb-6">Student Report Leaderboard</h3>
+              <div className="grid gap-4">
+                {session.students.sort((a, b) => b.score - a.score).map((s, i) => (
+                  <div key={s.id} className="bg-slate-900/40 border border-white/10 rounded-xl p-6 flex justify-between items-center">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-indigo-500/20 text-indigo-300 flex justify-center items-center font-bold text-lg">
+                        {i + 1}
+                      </div>
+                      <span className="text-2xl font-semibold">{s.name}</span>
+                    </div>
+                    <div className="flex items-center gap-8 text-right">
+                      <div className="flex flex-col">
+                        <span className="text-xs uppercase text-slate-500 font-bold tracking-widest">Final Score</span>
+                        <span className="text-2xl font-bold text-emerald-400">{s.score} <span className="text-sm text-slate-500">/ {session.questions.length}</span></span>
+                      </div>
+                      <div className="flex flex-col border-l border-white/10 pl-8">
+                        <span className="text-xs uppercase text-slate-500 font-bold tracking-widest">Failed Attempts</span>
+                        <span className="text-2xl font-bold text-red-400">{s.totalIncorrectAttempts}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap justify-center gap-6 border-t border-white/10 pt-10">
+              <button className="btn btn-outline text-xl px-12 py-5 hover:text-red-400 hover:border-red-500/50" onClick={resetSession}>
+                End Session
+              </button>
+              <input 
+                type="file" 
+                accept=".json" 
+                ref={nextTestFileInputRef} 
+                style={{ display: 'none' }} 
+                onChange={handleNextTestUpload} 
+              />
+              <button className="btn btn-primary text-xl px-12 py-5" onClick={() => nextTestFileInputRef.current?.click()}>
+                Upload New Test & Restart
+              </button>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <div className="mesh-bg"></div>

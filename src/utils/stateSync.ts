@@ -17,6 +17,7 @@ export interface StudentInfo {
   currentQuestionIndex: number;
   timeSpentSeconds: number;
   incorrectAttempts: number;
+  totalIncorrectAttempts: number;
   skipped: boolean;
   isStruggling: boolean;
   score: number;

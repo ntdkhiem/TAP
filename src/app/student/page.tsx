@@ -56,6 +56,7 @@ export default function StudentPortal() {
       currentQuestionIndex: 0,
       timeSpentSeconds: 0,
       incorrectAttempts: 0,
+      totalIncorrectAttempts: 0,
       skipped: false,
       isStruggling: false,
       score: 0
@@ -87,6 +88,7 @@ export default function StudentPortal() {
       } else {
         // Incorrect
         student.incorrectAttempts += 1;
+        student.totalIncorrectAttempts += 1;
         if (student.incorrectAttempts >= 2) student.isStruggling = true;
       }
 
